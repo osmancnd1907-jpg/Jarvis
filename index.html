@@ -27,6 +27,47 @@ body{
   flex-direction:column;
   align-items:center;
 }
+
+/* Ekran üstü ince sabit kısayol çubuğu */
+#topBar{
+  position:sticky;
+  top:0;
+  z-index:50;
+  width:100%;
+  height:34px;
+  padding:0 10px;
+  background:rgba(9,16,25,.96);
+  border-bottom:1px solid rgba(95,212,232,.28);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:12px;
+}
+.tb-left,.tb-right{display:flex;align-items:center;gap:6px;min-width:0}
+.tb-pulse{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--cyan);flex:0 0 auto;
+}
+.tb-label{
+  color:var(--cyan);font-weight:700;letter-spacing:.1em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tb-btn{
+  padding:3px 8px;
+  font-size:11.5px;
+  line-height:1.2;
+  border-radius:999px;
+  background:#112030;
+  border:1px solid rgba(95,212,232,.25);
+  color:var(--text);
+  white-space:nowrap;
+}
+.tb-btn.gold{
+  border-color:rgba(240,180,76,.45);
+  color:var(--gold);
+}
+
 header{
   width:100%;
   display:flex;
@@ -107,6 +148,19 @@ pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:
 </style>
 </head>
 <body>
+<div id="topBar" role="region" aria-label="Hızlı kısayol çubuğu">
+  <div class="tb-left">
+    <span class="tb-pulse" id="tbDot"></span>
+    <span class="tb-label" id="tbText">JARVIS // AKTİF</span>
+  </div>
+  <div class="tb-right">
+    <button type="button" class="tb-btn" id="tbListen">Dinle</button>
+    <button type="button" class="tb-btn gold" id="tbSpotify">Spotify</button>
+    <button type="button" class="tb-btn" id="tbGuide">Termux</button>
+    <button type="button" class="tb-btn" id="tbSet">Ayar</button>
+  </div>
+</div>
+
 <header>
   <h1>JARVIS // LITE</h1>
   <div class="hdr-actions">
@@ -194,7 +248,11 @@ let history = [];
 let busy = false;
 let pending = [];
 
-function setState(cls, text){ $('orb').className = cls; $('status').textContent = text; }
+function setState(cls, text){
+  $('orb').className = cls;
+  $('status').textContent = text;
+  $('tbText').textContent = 'JARVIS // ' + text;
+}
 
 function add(role, text, imgs = []){
   const d = document.createElement('div');
@@ -260,7 +318,6 @@ function listen(){
   rec.start();
 }
 
-/* Donma korumalı parça seslendirme */
 function speakChunk(chunk){
   return new Promise(res => {
     if (!('speechSynthesis' in window)) return res();
@@ -340,11 +397,9 @@ function appendLaunchButton(name, pkg, act, labelText){
   $('log').scrollTop = 1e9;
 }
 
-/* Spotify / medya / uygulama içi hızlı komutlar */
 async function mediaOrLaunch(q){
   const s = q.toLowerCase();
 
-  // "Spotify'dan kaldığım müziği aç / devam et / çal"
   if (/spotify/.test(s) && /(kaldığım|devam|müziği|şarkıyı|çal|aç|başlat)/.test(s)) {
     appendLaunchButton('Spotify', 'com.spotify.music', '', 'Spotify\'ı aç');
     if (cfg.token) {
@@ -354,7 +409,6 @@ async function mediaOrLaunch(q){
     return 'Emredersiniz efendim, Spotify için düğmeye dokunun; tam otomatik çalma için Termux köprüsünü bağlayabilirsiniz.';
   }
 
-  // Genel medya kontrol komutları (duraklat, devam et, sonraki, önceki)
   if (cfg.token && /(müziği|şarkıyı|medyayı)?\s*(durdur|duraklat|pause)/.test(s)) {
     await runTool('media_control', {action: 'pause'});
     return 'Medyayı duraklattım, efendim.';
@@ -368,7 +422,6 @@ async function mediaOrLaunch(q){
     return 'Sıradaki parçaya geçtim, efendim.';
   }
 
-  // Standart "X aç" komutları
   const m = s.match(/^(.+?)\s+(aç|açar mısın|başlat|çalıştır)\W*$/);
   if (!m) return null;
   const k = Object.keys(APPS).find(k => m[1].includes(k));
@@ -532,6 +585,11 @@ async function ask(q){
 }
 
 $('orb').onclick = () => { if (rec && $('orb').className === 'listening') rec.stop(); else listen(); };
+$('tbListen').onclick = () => { if (rec && $('orb').className === 'listening') rec.stop(); else listen(); };
+$('tbSpotify').onclick = () => ask("Spotify'dan kaldığım müziği aç");
+$('tbGuide').onclick = () => $('guide').showModal();
+$('tbSet').onclick = () => $('openSet').click();
+
 $('f').onsubmit = e => { e.preventDefault(); const v = $('t').value; $('t').value = ''; ask(v); };
 $('rate').oninput = () => { $('rateVal').textContent = $('rate').value; };
 $('pitch').oninput = () => { $('pitchVal').textContent = $('pitch').value; };
